@@ -45,3 +45,12 @@ type VLookupRequest struct {
 	} `json:"search_parameters"`
 	Signature string `json:"signature"`
 }
+
+type SignRequest struct {
+	PrivateKey string `json:"privateKey"` // base64 private key
+	Digest     string `json:"digest"`     // string digest to sign
+}
+
+type SignResponse struct {
+	Signature string `json:"signature"`
+}

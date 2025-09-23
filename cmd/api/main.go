@@ -18,6 +18,12 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
+	payload := []byte(`{"country":"IND","domain":"nic2004:52110"}`)
+
+	digest := auth.CreateDigest(payload)
+
+	fmt.Println("Digest:", digest)
+
 	if err := database.ConnectDB(); err != nil {
 		log.Fatalf("Could not connect to database: %s\n", err)
 	}
@@ -34,10 +40,16 @@ func main() {
 	}
 
 	http.HandleFunc("/lookup", handlers.LookupHandler)
-	http.HandleFunc("/vlookup", auth.AuthMiddleware(handlers.VlookupHandler))
+	http.HandleFunc("/vlookup", auth.AuthMiddleware(handlers.LookupHandler))
+
+	http.HandleFunc("/sign", handlers.SignHandler)
 
 	log.Printf("Server starting on port %s...", port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil); err != nil {
 		log.Fatalf("Could not start server: %s\n", err)
 	}
+
+
+	
+
 }
