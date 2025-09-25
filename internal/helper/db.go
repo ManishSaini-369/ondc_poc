@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
+    "encoding/base64"
+	"crypto/aes"
+	"crypto/cipher"
 	"ondc-poc/internal/database"
 	"golang.org/x/net/context"
 )
@@ -40,3 +42,34 @@ func GetPublicKeyByUKID(db *sql.DB, ukid string) (string, error) {
 
 	return publicKeyBase64, nil
 }
+
+
+
+func DecryptAES(encryptedBase64, keyString, ivString string) (string, error) {
+	ciphertext, err := base64.StdEncoding.DecodeString(encryptedBase64)
+	if err != nil {
+		return "", err
+	}
+
+	key := []byte(keyString)
+	iv := []byte(ivString)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	mode := cipher.NewCBCDecrypter(block, iv)
+	plaintext := make([]byte, len(ciphertext))
+	mode.CryptBlocks(plaintext, ciphertext)
+
+	// remove PKCS7 padding
+	padding := int(plaintext[len(plaintext)-1])
+	if padding > len(plaintext) {
+		return "", fmt.Errorf("invalid padding")
+	}
+	plaintext = plaintext[:len(plaintext)-padding]
+
+	return string(plaintext), nil
+}
+
