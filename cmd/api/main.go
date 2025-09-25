@@ -19,9 +19,7 @@ func main() {
 	}
 
 	payload := []byte(`{"country":"IND","domain":"nic2004:52110"}`)
-
 	digest := auth.CreateDigest(payload)
-
 	fmt.Println("Digest:", digest)
 
 	if err := database.ConnectDB(); err != nil {
@@ -39,17 +37,17 @@ func main() {
 		port = "8080"
 	}
 
-	http.HandleFunc("/lookup", handlers.LookupHandler)
-	http.HandleFunc("/vlookup", auth.AuthMiddleware(handlers.LookupHandler))
+	// Create mux and register routes
+	mux := http.NewServeMux()
+	mux.HandleFunc("/lookup", handlers.LookupHandler)
+	mux.HandleFunc("/vlookup", auth.AuthMiddleware(handlers.LookupHandler))
+	mux.HandleFunc("/sign", handlers.SignHandler)
 
-	http.HandleFunc("/sign", handlers.SignHandler)
+	// Wrap mux with LoggingMiddleware
+	loggedMux := auth.LoggingMiddleware(mux)
 
 	log.Printf("Server starting on port %s...", port)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), loggedMux); err != nil {
 		log.Fatalf("Could not start server: %s\n", err)
 	}
-
-
-	
-
 }
