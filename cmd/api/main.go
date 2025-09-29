@@ -10,6 +10,7 @@ import (
 	"ondc-poc/internal/auth"
 	"ondc-poc/internal/database"
 	"ondc-poc/internal/handlers"
+	"ondc-poc/internal/middleware"
 )
 
 func main() {
@@ -39,10 +40,10 @@ func main() {
 		port = "8080"
 	}
 
-	http.HandleFunc("/lookup", handlers.LookupHandler)
-	http.HandleFunc("/vlookup", auth.AuthMiddleware(handlers.LookupHandler))
+	http.HandleFunc("/lookup", middleware.CORSMiddleware(auth.EncryptionMiddleware(handlers.LookupHandler)))
+	http.HandleFunc("/vlookup", middleware.CORSMiddleware(auth.AuthMiddleware(auth.EncryptionMiddleware(handlers.LookupHandler))))
 
-	http.HandleFunc("/sign", handlers.SignHandler)
+	http.HandleFunc("/sign", middleware.CORSMiddleware(auth.EncryptionMiddleware(handlers.SignHandler)))
 
 	log.Printf("Server starting on port %s...", port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil); err != nil {

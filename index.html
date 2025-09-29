@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E2E Encryption Test</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f4; color: #333; padding: 1em; }
+        button { font-size: 1em; padding: 0.5em 1em; cursor: pointer; }
+        pre { background-color: #fff; border: 1px solid #ddd; padding: 1em; white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>End-to-End Encryption Test</h1>
+    <p>Open your browser's developer console (F12) and then click the button below to test the full encryption/decryption flow with the Go backend.</p>
+    <button onclick="runTest()">Run Test</button>
+    <pre id="log"></pre>
+
+    <script>
+        const logElement = document.getElementById('log');
+        function log(message) {
+            console.log(message);
+            logElement.textContent += message + '\n';
+        }
+
+        // IMPORTANT: This key MUST match the 'encryptionKey' in your Go middleware.
+        const keyString = "12345678901234567890123456789012";
+
+        async function getKey() {
+            return await window.crypto.subtle.importKey(
+                "raw",
+                new TextEncoder().encode(keyString),
+                { name: "AES-GCM" },
+                false,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        /**
+         * Encrypts a JSON object to be compatible with the Go backend.
+         */
+        async function encryptData(data, key) {
+            const iv = window.crypto.getRandomValues(new Uint8Array(12)); // Nonce
+            const encryptedContent = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                new TextEncoder().encode(JSON.stringify(data))
+            );
+
+            const combined = new Uint8Array(iv.length + encryptedContent.byteLength);
+            combined.set(iv, 0);
+            combined.set(new Uint8Array(encryptedContent), iv.length);
+
+            return btoa(String.fromCharCode.apply(null, combined));
+        }
+
+        /**
+         * Decrypts a base64 string from the Go backend.
+         */
+        async function decryptData(base64String, key) {
+            const binaryString = atob(base64String);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            const iv = bytes.slice(0, 12);
+            const ciphertext = bytes.slice(12);
+
+            const decryptedContent = await window.crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                ciphertext
+            );
+
+            return new TextDecoder().decode(decryptedContent);
+        }
+
+        async function runTest() {
+            logElement.textContent = ''; // Clear previous logs
+            log("--- Starting Test ---");
+
+            try {
+                log(`1. Using key string: '${keyString}'`);
+                log(`2. Key string character length: ${keyString.length}`);
+                const keyBytes = new TextEncoder().encode(keyString);
+                log(`3. Encoded key byte length: ${keyBytes.byteLength}`);
+
+                if (keyBytes.byteLength !== 32) {
+                    throw new Error(`Key byte length is ${keyBytes.byteLength}, but must be 32.`);
+                }
+
+                const key = await window.crypto.subtle.importKey(
+                    "raw",
+                    keyBytes,
+                    { name: "AES-GCM" },
+                    false,
+                    ["encrypt", "decrypt"]
+                );
+                log("4. Crypto key imported successfully.");
+
+                const lookupData = {
+                    "ukid": "UKID001"
+                };
+                log("5. Original request data:\n" + JSON.stringify(lookupData, null, 2));
+
+                const encryptedPayload = await encryptData(lookupData, key);
+                log("6. Encrypted payload (sent to backend):\n" + encryptedPayload);
+
+                log("7. Sending request to http://localhost:8081/lookup...");
+                const response = await fetch('http://localhost:8081/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: encryptedPayload
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server returned an error: ${errorText}`);
+                }
+                
+                const encryptedResponse = await response.text();
+                log("8. Received encrypted response from backend:\n" + encryptedResponse);
+
+                const decryptedResponse = await decryptData(encryptedResponse, key);
+                log("9. Decrypted response:\n" + JSON.stringify(JSON.parse(decryptedResponse), null, 2));
+
+                log("\n--- Test Successful! ---");
+
+            } catch (error) {
+                log("\n--- TEST FAILED ---");
+                log("Error: " + error.message);
+                log("Please ensure your Go backend server is running.");
+            }
+        }
+    </script>
+</body>
+</html>
