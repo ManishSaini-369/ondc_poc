@@ -6,10 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
 	"ondc-poc/internal/database"
 	"ondc-poc/internal/models"
-
 	"github.com/go-redis/redis/v8"
 )
 
@@ -89,11 +87,13 @@ func findParticipantsInDB(query models.LookupRequest) ([]models.Participant, err
 		argId++
 	}
 
-	rows, err := database.DB.Query(sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	sqlDB, err := database.DB.DB()  // get *sql.DB
+    if err != nil {
+
+        return nil, err
+    }
+
+    rows, err := sqlDB.Query(sql, args...)
 
 	var participants []models.Participant
 	for rows.Next() {

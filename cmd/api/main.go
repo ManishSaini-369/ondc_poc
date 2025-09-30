@@ -13,8 +13,7 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
@@ -22,11 +21,11 @@ func main() {
 	digest := auth.CreateDigest(payload)
 	fmt.Println("Digest:", digest)
 
-	if err := database.ConnectDB(); err != nil {
-		log.Fatalf("Could not connect to database: %s\n", err)
-	}
+	// Initialize PostgreSQL (GORM)
+	database.ConnectDB()
 	log.Println("Connected to database")
 
+	// Initialize Redis
 	if err := database.ConnectRedis(); err != nil {
 		log.Fatalf("Could not connect to Redis: %s\n", err)
 	}
@@ -42,6 +41,8 @@ func main() {
 	mux.HandleFunc("/lookup", handlers.LookupHandler)
 	mux.HandleFunc("/vlookup", auth.AuthMiddleware(handlers.LookupHandler))
 	mux.HandleFunc("/sign", handlers.SignHandler)
+	// mux.HandleFunc("/search", handlers.SearchHandler)
+	mux.HandleFunc("/search", auth.AuthMiddlewareSearch(handlers.SearchHandler)) 
 
 	// Wrap mux with LoggingMiddleware
 	loggedMux := auth.LoggingMiddleware(mux)

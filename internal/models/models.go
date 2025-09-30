@@ -54,3 +54,47 @@ type SignRequest struct {
 type SignResponse struct {
 	Signature string `json:"signature"`
 }
+
+
+
+// Search ---------flow 
+
+// Context is part of ONDC protocol
+
+type ONDCSearchRequest struct {
+	Context Context `json:"context"`
+	Message struct {
+		Intent map[string]interface{} `json:"intent"`
+	} `json:"message"`
+}
+
+
+type Context struct {
+	TransactionID string `json:"transaction_id"`
+	MessageID     string `json:"message_id"`
+	BapID         string `json:"bap_id"`
+	BapURI        string `json:"bap_uri"`
+	Domain        string `json:"domain"`
+	City          string `json:"city"`
+	Timestamp     string `json:"timestamp"`
+}
+
+
+type AckResponse struct {
+	Context Context   `json:"context"`
+	Message AckMessage `json:"message"`
+}
+
+
+
+type Ack struct {
+	Status string `json:"status"`
+}
+
+
+
+type AckMessage struct {
+	Ack struct {
+		Status string `json:"status"`
+	} `json:"ack"`
+}

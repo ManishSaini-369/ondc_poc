@@ -1,22 +1,25 @@
-
 package database
 
 import (
-	"database/sql"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/go-redis/redis/v8"
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
+	"ondc-poc/internal/models"
 )
 
 var (
-	DB  *sql.DB
+	DB  *gorm.DB
 	RDB *redis.Client
 )
 
-func ConnectDB() error {
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+// ConnectDB initializes PostgreSQL using GORM
+func ConnectDB() {
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),
 		os.Getenv("DB_USER"),
@@ -24,19 +27,21 @@ func ConnectDB() error {
 		os.Getenv("DB_NAME"),
 	)
 
-	var err error
-	DB, err = sql.Open("postgres", connStr)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return err
+		log.Fatal("failed to connect to database:", err)
 	}
 
-	if err = DB.Ping(); err != nil {
-		return err
+	// Auto migrate your models
+	if err := db.AutoMigrate(&models.SearchRequest{}); err != nil {
+		log.Fatal("failed to migrate database:", err)
 	}
 
-	return nil
+	DB = db
+	log.Println("PostgreSQL connected and migrated successfully")
 }
 
+// ConnectRedis initializes Redis client
 func ConnectRedis() error {
 	opt, err := redis.ParseURL(fmt.Sprintf("redis://%s", os.Getenv("REDIS_ADDR")))
 	if err != nil {
@@ -44,5 +49,6 @@ func ConnectRedis() error {
 	}
 
 	RDB = redis.NewClient(opt)
+	log.Println("Redis connected successfully")
 	return nil
 }

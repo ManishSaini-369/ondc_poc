@@ -1,8 +1,6 @@
 package helper
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"time"
     "encoding/base64"
@@ -10,13 +8,16 @@ import (
 	"crypto/cipher"
 	"ondc-poc/internal/database"
 	"golang.org/x/net/context"
+	"ondc-poc/internal/models"
+
 )
 
 // Redis TTL for cached public keys
 const publicKeyTTL = time.Hour
 
 // GetPublicKeyByUKID fetches public key from Redis cache first, then DB
-func GetPublicKeyByUKID(db *sql.DB, ukid string) (string, error) {
+
+func GetPublicKeyByUKID(ukid string) (string, error) {
 	ctx := context.Background()
 	cacheKey := fmt.Sprintf("participant:ukid:%s", ukid)
 
@@ -24,16 +25,17 @@ func GetPublicKeyByUKID(db *sql.DB, ukid string) (string, error) {
 	if database.RDB != nil {
 		cachedKey, err := database.RDB.Get(ctx, cacheKey).Result()
 		if err == nil && cachedKey != "" {
-			return cachedKey, nil // Base64 string
+			return cachedKey, nil // Base64 string from cache
 		}
 	}
 
-	// Fallback: DB
-	var publicKeyBase64 string
-	err := db.QueryRow(`SELECT signing_public_key FROM participants WHERE ukid = $1`, ukid).Scan(&publicKeyBase64)
-	if err != nil {
-		return "", errors.New("ukid not found or db error")
+	// Fallback: Query PostgreSQL via GORM
+	var participant models.Participant
+	if err := database.DB.Select("signing_public_key").Where("ukid = ?", ukid).First(&participant).Error; err != nil {
+		return "", fmt.Errorf("ukid not found or db error: %w", err)
 	}
+
+	publicKeyBase64 := participant.SigningPublicKey
 
 	// Store in Redis
 	if database.RDB != nil {
@@ -42,6 +44,7 @@ func GetPublicKeyByUKID(db *sql.DB, ukid string) (string, error) {
 
 	return publicKeyBase64, nil
 }
+
 
 
 

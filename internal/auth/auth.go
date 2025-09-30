@@ -8,8 +8,12 @@ import (
 	"strings"
 	"os"
 	"encoding/json"
-	"ondc-poc/internal/database"
+	// "ondc-poc/internal/database"
 	"ondc-poc/internal/helper"
+	"regexp"
+	// "crypto/sha256"
+	// "encoding/base64"
+
 	
 )
 
@@ -86,7 +90,7 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		log.Println("Signature from client:", signature)
 
 		// 9️⃣ Fetch public key for ukid
-		pubKey, err := helper.GetPublicKeyByUKID(database.DB, ukid)
+		pubKey, err := helper.GetPublicKeyByUKID(ukid)
 		if err != nil {
 			http.Error(w, "Unable to fetch public key for ukid", http.StatusUnauthorized)
 			return
@@ -101,6 +105,80 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		log.Println("Step 4: Signature verified")
 
 		// ✅ All good → pass decrypted body to handler
+		next.ServeHTTP(w, r)
+	}
+}
+
+
+
+func AuthMiddlewareSearch(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 1️⃣ Read Authorization header
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			helper.WriteNACK(w, "Missing Authorization header", "30001")
+			return
+		}
+
+		// 2️⃣ Extract signature
+		signature, err := ExtractSignature(authHeader)
+		if err != nil {
+			helper.WriteNACK(w, "Invalid Authorization header (no signature)", "30001")
+			return
+		}
+		log.Println("Signature from client:", signature)
+
+		// 3️⃣ Extract ukid (subscriber_id)
+		re := regexp.MustCompile(`keyId="([^"]+)"`)
+		matches := re.FindStringSubmatch(authHeader)
+		if len(matches) != 2 {
+			helper.WriteNACK(w, "Invalid keyId format", "30001")
+			return
+		}
+		ukid := matches[1]
+		log.Println("Extracted ukid:", ukid)
+
+		// 4️⃣ Fetch public key
+		pubKeyBase64, err := helper.GetPublicKeyByUKID(ukid)
+		if err != nil {
+			helper.WriteNACK(w, "Failed to fetch public key", "30002")
+			return
+		}
+		log.Println("Fetched public key for ukid:", ukid)
+
+		// 5️⃣ Read request body
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			helper.WriteNACK(w, "Failed to read request body", "30003")
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // reset for next handler
+		log.Println("Step 1: Body read successfully")
+
+		// 6️⃣ Compute Digest (BLAKE2b-256)
+		computedDigest := CreateDigest(bodyBytes)
+		log.Println("Computed Digest:", computedDigest)
+
+		// 7️⃣ Compare with Digest header
+		clientDigest := strings.TrimPrefix(r.Header.Get("Digest"), "BLAKE-256=")
+		if clientDigest == "" {
+			helper.WriteNACK(w, "Digest header missing", "30001")
+			return
+		}
+		if clientDigest != computedDigest {
+			helper.WriteNACK(w, "Digest mismatch", "30004")
+			return
+		}
+		log.Println("Step 2: Digest verified")
+
+		// 8️⃣ Verify signature
+		if !VerifySignature(pubKeyBase64, signature, computedDigest) {
+			helper.WriteNACK(w, "Signature verification failed", "30005")
+			return
+		}
+		log.Println("Step 3: Signature verified")
+
+		// ✅ All good → pass request to handler
 		next.ServeHTTP(w, r)
 	}
 }

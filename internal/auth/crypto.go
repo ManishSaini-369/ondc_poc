@@ -31,6 +31,8 @@ func SignRequest(privateKey ed25519.PrivateKey, digestBytes []byte) (string, err
 
 func VerifySignature(pubKeyBase64, signatureBase64, digestBase64 string) bool {
 	// Decode public key
+
+	fmt.Println("jjjjjjjjjxs ", pubKeyBase64)
 	pubKeyBytes, err := base64.StdEncoding.DecodeString(pubKeyBase64)
     fmt.Println("dfndfndjfd ", len(pubKeyBytes))
 	if err != nil {
