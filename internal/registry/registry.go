@@ -52,7 +52,11 @@ func FindParticipants(query models.LookupRequest) ([]models.Participant, error) 
 }
 
 func findParticipantsInDB(query models.LookupRequest) ([]models.Participant, error) {
-	sql := "SELECT subscriber_id, status, ukid, subscriber_url, country, domain, valid_from, valid_until, type, signing_public_key, encr_public_key, created, updated, br_id, city FROM participants WHERE 1=1"
+	sql := `SELECT subscriber_id, status, ukid, subscriber_url, country, domain, 
+                   valid_from, valid_until, type, signing_public_key, encr_public_key, 
+                   created, updated, br_id, city 
+            FROM ondc.participants WHERE 1=1`
+
 	var args []interface{}
 	argId := 1
 
@@ -87,22 +91,46 @@ func findParticipantsInDB(query models.LookupRequest) ([]models.Participant, err
 		argId++
 	}
 
-	sqlDB, err := database.DB.DB()  // get *sql.DB
-    if err != nil {
+	sqlDB, err := database.DB.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
+	}
 
-        return nil, err
-    }
-
-    rows, err := sqlDB.Query(sql, args...)
+	rows, err := sqlDB.Query(sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
 
 	var participants []models.Participant
 	for rows.Next() {
 		var p models.Participant
-		if err := rows.Scan(&p.SubscriberID, &p.Status, &p.UkID, &p.SubscriberURL, &p.Country, &p.Domain, &p.ValidFrom, &p.ValidUntil, &p.Type, &p.SigningPublicKey, &p.EncrPublicKey, &p.Created, &p.Updated, &p.BrID, &p.City); err != nil {
-			return nil, err
+		if err := rows.Scan(
+			&p.SubscriberID,
+			&p.Status,
+			&p.UkID,
+			&p.SubscriberURL,
+			&p.Country,
+			&p.Domain,
+			&p.ValidFrom,
+			&p.ValidUntil,
+			&p.Type,
+			&p.SigningPublicKey,
+			&p.EncrPublicKey,
+			&p.Created,
+			&p.Updated,
+			&p.BrID,
+			&p.City,
+		); err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
 		}
 		participants = append(participants, p)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
 	return participants, nil
 }
+

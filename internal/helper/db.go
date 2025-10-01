@@ -31,9 +31,12 @@ func GetPublicKeyByUKID(ukid string) (string, error) {
 
 	// Fallback: Query PostgreSQL via GORM
 	var participant models.Participant
-	if err := database.DB.Select("signing_public_key").Where("ukid = ?", ukid).First(&participant).Error; err != nil {
-		return "", fmt.Errorf("ukid not found or db error: %w", err)
-	}
+if err := database.DB.Table("ondc.participants").
+	Select("signing_public_key").
+	Where("ukid = ?", ukid).
+	First(&participant).Error; err != nil {
+	return "", fmt.Errorf("ukid not found or db error: %w", err)
+}
 
 	publicKeyBase64 := participant.SigningPublicKey
 

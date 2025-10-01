@@ -17,9 +17,9 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	payload := []byte(`{"country":"IND","domain":"nic2004:52110"}`)
-	digest := auth.CreateDigest(payload)
-	fmt.Println("Digest:", digest)
+	// payload := []byte(`{"country":"IND","domain":"nic2004:52110"}`)
+	// digest := auth.CreateDigest(payload)
+	// fmt.Println("Digest:", digest)
 
 	// Initialize PostgreSQL (GORM)
 	database.ConnectDB()

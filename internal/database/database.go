@@ -9,7 +9,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"ondc-poc/internal/models"
+	// "ondc-poc/internal/models"
 )
 
 var (
@@ -19,12 +19,14 @@ var (
 
 // ConnectDB initializes PostgreSQL using GORM
 func ConnectDB() {
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	dsn := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=require search_path=%s",
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
 		os.Getenv("DB_NAME"),
+		os.Getenv("DB_SCHEMA"),
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -32,14 +34,10 @@ func ConnectDB() {
 		log.Fatal("failed to connect to database:", err)
 	}
 
-	// Auto migrate your models
-	if err := db.AutoMigrate(&models.SearchRequest{}); err != nil {
-		log.Fatal("failed to migrate database:", err)
-	}
-
 	DB = db
-	log.Println("PostgreSQL connected and migrated successfully")
+	log.Println("✅ PostgreSQL connected successfully to schema:", os.Getenv("DB_SCHEMA"))
 }
+
 
 // ConnectRedis initializes Redis client
 func ConnectRedis() error {

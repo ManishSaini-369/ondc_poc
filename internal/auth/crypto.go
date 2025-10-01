@@ -9,17 +9,40 @@ import (
     "log"
     "errors"
     "regexp"
+	"bytes"
+	"encoding/json"
+	// "io"
     // "strings"
 )
+
+
+func NormalizeJSON(body []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	if err := json.Compact(&buf, body); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+
 
 // GenerateKeys creates a new ed25519 key pair.
 func GenerateKeys() (ed25519.PublicKey, ed25519.PrivateKey, error) {
 	return ed25519.GenerateKey(nil)
 }
 
-func CreateDigest(body []byte) string {
-	hash := blake2b.Sum256(body) // BLAKE2b-256
-	return base64.StdEncoding.EncodeToString(hash[:])
+func CreateDigest(body []byte) (string, error) {
+	// Step 1: Normalize JSON
+	normalized, err := NormalizeJSON(body)
+	if err != nil {
+		return "", err
+	}
+
+	// Step 2: Generate BLAKE2b-256 hash
+	hash := blake2b.Sum256(normalized)
+
+	// Step 3: Return Base64 encoded hash
+	return base64.StdEncoding.EncodeToString(hash[:]), nil
 }
 
 
