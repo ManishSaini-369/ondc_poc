@@ -39,7 +39,7 @@ func main() {
 	// Create mux and register routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("/lookup", handlers.LookupHandler)
-	mux.HandleFunc("/vlookup", auth.AuthMiddleware(handlers.LookupHandler))
+	mux.HandleFunc("/vlookup", handlers.VlookupHandler)
 	mux.HandleFunc("/sign", handlers.SignHandler)
 	// mux.HandleFunc("/search", handlers.SearchHandler)
 	mux.HandleFunc("/search", auth.AuthMiddlewareSearch(handlers.SearchHandler)) 

@@ -127,10 +127,19 @@ func findParticipantsInDB(query models.LookupRequest) ([]models.Participant, err
 		participants = append(participants, p)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("row iteration error: %w", err)
-	}
-
 	return participants, nil
 }
 
+func GetParticipantBySubscriberID(subscriberID string) (*models.Participant, error) {
+	query := models.LookupRequest{
+		SubscriberID: subscriberID,
+	}
+	participants, err := findParticipantsInDB(query)
+	if err != nil {
+		return nil, err
+	}
+	if len(participants) == 0 {
+		return nil, fmt.Errorf("participant with subscriber ID '%s' not found", subscriberID)
+	}
+	return &participants[0], nil
+}

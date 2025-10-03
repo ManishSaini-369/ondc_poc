@@ -12,6 +12,8 @@ import (
 	"ondc-poc/internal/registry"
 	"ondc-poc/internal/auth"
 	"ondc-poc/internal/helper"
+	"encoding/base64"
+	"golang.org/x/crypto/blake2b"
 )
 
 func LookupHandler(w http.ResponseWriter, r *http.Request) {
@@ -40,13 +42,62 @@ func LookupHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func VlookupHandler(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
+	var req models.VlookupRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Get public key of sender
+	sender, err := registry.GetParticipantBySubscriberID(req.SenderSubscriberID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get sender details: %s", err), http.StatusUnauthorized)
+		return
+	}
+
+	// Create digest
+	signingString := fmt.Sprintf("%s|%s|%s|%s|%s",
+		req.SearchParameters.Country,
+		req.SearchParameters.Domain,
+		req.SearchParameters.Type,
+		req.SearchParameters.City,
+		req.SearchParameters.SubscriberID,
+	)
+
+	hash := blake2b.Sum256([]byte(signingString))
+	digest := base64.StdEncoding.EncodeToString(hash[:])
+
+	// Verify signature
+	if !auth.VerifySignature(sender.SigningPublicKey, req.Signature, digest) {
+		http.Error(w, "Signature verification failed", http.StatusUnauthorized)
+		return
+	}
+
+	// Perform lookup
+	lookupReq := models.LookupRequest{
+		Country:      req.SearchParameters.Country,
+		Domain:       req.SearchParameters.Domain,
+		Type:         req.SearchParameters.Type,
+		City:         req.SearchParameters.City,
+		SubscriberID: req.SearchParameters.SubscriberID,
+	}
+
+	results, err := registry.FindParticipants(lookupReq)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to find participants: %s", err), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"message": "vlookup not implemented yet"}`))
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 
