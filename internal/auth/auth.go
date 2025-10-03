@@ -4,10 +4,12 @@ import (
 	"net/http"
     "log"
 	"bytes"
+	"fmt"
+
 	"io"
 	"strings"
 	// "os"
-	// "encoding/json"
+	"encoding/json"
 	// "ondc-poc/internal/database"
 	"ondc-poc/internal/helper"
 	"regexp"
@@ -167,6 +169,85 @@ func AuthMiddlewareSearch(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+
+
+
+
+
+
+
+// VlookupHandler handles the /vlookup endpoint with signature verification
+
+
+
+
+
+func AuthMiddlewareVlookup(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Unable to read request body", http.StatusBadRequest)
+			return
+		}
+		
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+		// 2) Parse only what we need from request body
+		var payload struct {
+			SenderSubscriberID string `json:"sender_subscriber_id"`
+			Signature          string `json:"signature"`
+			SearchParameters   struct {
+				Country      string `json:"country"`
+				Domain       string `json:"domain"`
+				Type         string `json:"type"`
+				City         string `json:"city"`
+				SubscriberID string `json:"subscriber_id"`
+			} `json:"search_parameters"`
+		}
+		if err := json.Unmarshal(body, &payload); err != nil {
+			http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+			return
+		}
+
+		// check required fields
+		if payload.SenderSubscriberID == "" || payload.Signature == "" {
+			http.Error(w, "Missing sender_subscriber_id or signature", http.StatusBadRequest)
+			return
+		}
+
+		sp := payload.SearchParameters
+		if sp.Country == "" || sp.Domain == "" || sp.Type == "" || sp.City == "" || sp.SubscriberID == "" {
+			http.Error(w, "Missing search_parameters fields", http.StatusBadRequest)
+			return
+		}
+
+		// 3) Build signing string
+		signingString := fmt.Sprintf("%s|%s|%s|%s|%s",
+			sp.Country, sp.Domain, sp.Type, sp.City, sp.SubscriberID,
+		)
+
+		// 4) Fetch public key using sender_subscriber_id
+		pubKey, err := helper.GetPublicKeyBySubscriberID(payload.SenderSubscriberID)
+		if err != nil {
+			http.Error(w, "Unable to fetch public key for sender_subscriber_id", http.StatusUnauthorized)
+			return
+		}
+
+		log.Println("Fetched subscribver_id:", payload.SenderSubscriberID)
+		log.Println("Fetched public key for sender_subscriber_id:", pubKey)
+
+		// 5) Verify signature
+		if !VerifySignatureString(pubKey, payload.Signature, signingString) {
+			http.Error(w, "Signature verification failed", http.StatusUnauthorized)
+			return
+		}
+		log.Println("Signature verified for:", payload.SenderSubscriberID)
+
+		// 6) Pass request forward
+		next.ServeHTTP(w, r)
+	}
+}
 
 
 

@@ -101,26 +101,32 @@ func VlookupHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
+
+
+// handlers/sign.go
+
+
 func SignHandler(w http.ResponseWriter, r *http.Request) {
-	var req models.SignRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
+    var req models.SignRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
 
-	signature, err := auth.SignDigest(req.PrivateKey, req.Digest)
-	if err != nil {
-		http.Error(w, "Failed to sign digest: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+    signature, err := auth.SignDigest(req.PrivateKey, req.Data)
+    if err != nil {
+        http.Error(w, "Failed to sign data: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
 
-	resp := models.SignResponse{Signature: signature}
+    resp := models.SignResponse{Signature: signature}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		log.Println("Failed to write response:", err)
-	}
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(resp); err != nil {
+        log.Println("Failed to write response:", err)
+    }
 }
+
 
 
 
@@ -173,3 +179,29 @@ func writeJSON(w http.ResponseWriter, data interface{}) {
 
 
 
+
+
+
+
+
+
+func SignHandlers(w http.ResponseWriter, r *http.Request) {
+	var req models.SignRequests
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	signature, err := auth.SignDigests(req.PrivateKey, req.Digest)
+	if err != nil {
+		http.Error(w, "Failed to sign digest: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := models.SignResponses{Signature: signature}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Println("Failed to write response:", err)
+	}
+}

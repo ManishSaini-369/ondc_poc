@@ -86,24 +86,28 @@ func VerifySignature(pubKeyBase64, signatureBase64, digestBase64 string) bool {
 }
 
 
+//. SignDigest
 
 
 
-
-func SignDigest(privateKeyBase64 string, digestBase64 string) (string, error) {
+// auth/sign.go
+func SignDigest(privateKeyBase64 string, data string) (string, error) {
+    // decode private key
     privKeyBytes, err := base64.StdEncoding.DecodeString(privateKeyBase64)
     if err != nil {
         return "", err
     }
 
-    digestBytes, err := base64.StdEncoding.DecodeString(digestBase64)
-    if err != nil {
-        return "", err
-    }
+    // convert data string to bytes
+    dataBytes := []byte(data)
 
-    signature := ed25519.Sign(ed25519.PrivateKey(privKeyBytes), digestBytes)
+    // sign directly using Ed25519
+    signature := ed25519.Sign(ed25519.PrivateKey(privKeyBytes), dataBytes)
+
+    // return base64 encoded signature
     return base64.StdEncoding.EncodeToString(signature), nil
 }
+
 
 
 
@@ -148,4 +152,54 @@ func ExtractUKID(authHeader string) (string, error) {
 		return "", errors.New("keyId not found")
 	}
 	return matches[1], nil
+}
+
+
+
+
+/// verfy signare string 
+
+
+func VerifySignatureString(pubKeyBase64, signatureBase64, message string) bool {
+	// 1️⃣ Decode public key
+	pubKeyBytes, err := base64.StdEncoding.DecodeString(pubKeyBase64)
+	if err != nil {
+		log.Println("Invalid public key:", err)
+		return false
+	}
+
+	// 2️⃣ Decode signature
+	sigBytes, err := base64.StdEncoding.DecodeString(signatureBase64)
+	if err != nil {
+		log.Println("Invalid signature:", err)
+		return false
+	}
+
+	// 3️⃣ Convert message string to bytes
+	messageBytes := []byte(message)
+
+	// 4️⃣ Verify signature
+	ok := ed25519.Verify(ed25519.PublicKey(pubKeyBytes), messageBytes, sigBytes)
+	if !ok {
+		log.Println("Signature verification failed!")
+	}
+	return ok
+}
+
+
+
+
+func SignDigests(privateKeyBase64 string, digestBase64 string) (string, error) {
+    privKeyBytes, err := base64.StdEncoding.DecodeString(privateKeyBase64)
+    if err != nil {
+        return "", err
+    }
+
+    digestBytes, err := base64.StdEncoding.DecodeString(digestBase64)
+    if err != nil {
+        return "", err
+    }
+
+    signature := ed25519.Sign(ed25519.PrivateKey(privKeyBytes), digestBytes)
+    return base64.StdEncoding.EncodeToString(signature), nil
 }

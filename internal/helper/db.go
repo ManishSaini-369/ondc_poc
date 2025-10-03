@@ -21,7 +21,7 @@ func GetPublicKeyByUKID(ukid string) (string, error) {
 	ctx := context.Background()
 	cacheKey := fmt.Sprintf("participant:ukid:%s", ukid)
 
-	// Try Redis first
+	// 1️⃣ Try Redis first
 	if database.RDB != nil {
 		cachedKey, err := database.RDB.Get(ctx, cacheKey).Result()
 		if err == nil && cachedKey != "" {
@@ -29,24 +29,28 @@ func GetPublicKeyByUKID(ukid string) (string, error) {
 		}
 	}
 
-	// Fallback: Query PostgreSQL via GORM
+	// 2️⃣ Fallback: Query PostgreSQL via GORM
 	var participant models.Participant
-if err := database.DB.Table("ondc.participants").
-	Select("signing_public_key").
-	Where("ukid = ?", ukid).
-	First(&participant).Error; err != nil {
-	return "", fmt.Errorf("ukid not found or db error: %w", err)
-}
+	if err := database.DB.Table("ondc.participants").
+		Select("signing_public_key").
+		Where("ukid = ?", ukid).
+		Take(&participant).Error; err != nil { // 👈 changed .First() → .Take()
+		return "", fmt.Errorf("ukid not found or db error: %w", err)
+	}
 
 	publicKeyBase64 := participant.SigningPublicKey
 
-	// Store in Redis
+	// 3️⃣ Store in Redis
 	if database.RDB != nil {
 		_ = database.RDB.Set(ctx, cacheKey, publicKeyBase64, publicKeyTTL).Err()
 	}
 
 	return publicKeyBase64, nil
 }
+
+
+
+
 
 
 
@@ -79,3 +83,54 @@ func DecryptAES(encryptedBase64, keyString, ivString string) (string, error) {
 	return string(plaintext), nil
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//////// fined the publci ke by subscriber id 
+
+
+func GetPublicKeyBySubscriberID(subscriberID string) (string, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("participant:subscriber_id:%s", subscriberID)
+
+	// 1️⃣ Try Redis first
+	if database.RDB != nil {
+		cachedKey, err := database.RDB.Get(ctx, cacheKey).Result()
+		if err == nil && cachedKey != "" {
+			return cachedKey, nil // Base64 string from cache
+		}
+	}
+
+	// 2️⃣ Fallback: Query PostgreSQL via GORM
+	var participant models.Participant
+	if err := database.DB.Table("ondc.participants").
+		Select("signing_public_key").
+		Where("subscriber_id = ?", subscriberID).
+		First(&participant).Error; err != nil {
+		return "", fmt.Errorf("subscriber_id not found or db error: %w", err)
+	}
+
+	publicKeyBase64 := participant.SigningPublicKey
+
+	// 3️⃣ Store in Redis for future lookups
+	if database.RDB != nil {
+		_ = database.RDB.Set(ctx, cacheKey, publicKeyBase64, publicKeyTTL).Err()
+	}
+
+	fmt.Println("Public Key from DB:", publicKeyBase64) // ✅ print
+
+	return publicKeyBase64, nil
+}
