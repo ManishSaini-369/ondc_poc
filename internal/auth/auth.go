@@ -176,7 +176,7 @@ func AuthMiddlewareSearch(next http.HandlerFunc) http.HandlerFunc {
 
 
 
-// VlookupHandler handles the /vlookup endpoint with signature verification
+// handles the /vlookup endpoint with signature verification
 
 
 
@@ -226,6 +226,8 @@ func AuthMiddlewareVlookup(next http.HandlerFunc) http.HandlerFunc {
 		signingString := fmt.Sprintf("%s|%s|%s|%s|%s",
 			sp.Country, sp.Domain, sp.Type, sp.City, sp.SubscriberID,
 		)
+
+		log.Println("Signing string:", signingString)
 
 		// 4) Fetch public key using sender_subscriber_id
 		pubKey, err := helper.GetPublicKeyBySubscriberID(payload.SenderSubscriberID)
