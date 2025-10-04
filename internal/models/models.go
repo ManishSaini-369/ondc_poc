@@ -4,21 +4,21 @@ import "time"
 
 // Participant represents a single entity in the ONDC registry.
 type Participant struct {
-	SubscriberID      string    `json:"subscriber_id"`
-	Status            string    `json:"status"`
-	UkID              string    `json:"ukId"`
-	SubscriberURL     string    `json:"subscriber_url"`
-	Country           string    `json:"country"`
-	Domain            string    `json:"domain"`
-	ValidFrom         time.Time `json:"valid_from"`
-	ValidUntil        time.Time `json:"valid_until"`
-	Type              string    `json:"type"`
-	SigningPublicKey  string    `json:"signing_public_key"`
-	EncrPublicKey     string    `json:"encr_public_key"`
-	Created           time.Time `json:"created"`
-	Updated           time.Time `json:"updated"`
-	BrID              string    `json:"br_id"`
-	City              string    `json:"city"`
+	SubscriberID     string    `json:"subscriber_id"`
+	Status           string    `json:"status"`
+	UkID             string    `json:"ukId"`
+	SubscriberURL    string    `json:"subscriber_url"`
+	Country          string    `json:"country"`
+	Domain           string    `json:"domain"`
+	ValidFrom        time.Time `json:"valid_from"`
+	ValidUntil       time.Time `json:"valid_until"`
+	Type             string    `json:"type"`
+	SigningPublicKey string    `json:"signing_public_key"`
+	EncrPublicKey    string    `json:"encr_public_key"`
+	Created          time.Time `json:"created"`
+	Updated          time.Time `json:"updated"`
+	BrID             string    `json:"br_id"`
+	City             string    `json:"city"`
 }
 
 // LookupRequest is the request body for the /lookup endpoint.
@@ -47,17 +47,15 @@ type VLookupRequest struct {
 }
 
 type SignRequests struct {
-	PrivateKey string `json:"privateKey"` 
-	Digest     string `json:"digest"`     
+	PrivateKey string `json:"privateKey"`
+	Digest     string `json:"digest"`
 }
 
 type SignResponses struct {
 	Signature string `json:"signature"`
 }
 
-
-
-// Search ---------flow 
+// Search ---------flow
 
 // Context is part of ONDC protocol
 
@@ -67,7 +65,6 @@ type ONDCSearchRequest struct {
 		Intent map[string]interface{} `json:"intent"`
 	} `json:"message"`
 }
-
 
 type Context struct {
 	TransactionID string `json:"transaction_id"`
@@ -79,19 +76,14 @@ type Context struct {
 	Timestamp     string `json:"timestamp"`
 }
 
-
 type AckResponse struct {
-	Context Context   `json:"context"`
+	Context Context    `json:"context"`
 	Message AckMessage `json:"message"`
 }
-
-
 
 type Ack struct {
 	Status string `json:"status"`
 }
-
-
 
 type AckMessage struct {
 	Ack struct {

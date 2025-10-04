@@ -1,0 +1,184 @@
+{
+	"info": {
+		"_postman_id": "70a585b9-ff36-40f8-bd49-04cbfe5ccea6",
+		"name": "ONDC-POC",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29980998"
+	},
+	"item": [
+		{
+			"name": "vlookup",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"sender_subscriber_id\": \"Amazon.com\",\n    \"request_id\": \"your_unique_request_id\",\n    \"timestamp\": \"2024-07-30T10:00:00.000Z\",\n    \"signature\": \"BSCm2wTw3lpCOK7aHf27CNSOfDhrkInwheIf5qja9y7CdsD23YKQb5pUJvKJW+XJIr/vjSW8AtUHI7zyn5RwAQ==\",\n    \"search_parameters\": {\n        \"country\": \"IN\",\n        \"domain\": \"ONDC:ENT01\",\n        \"type\": \"Seller\",\n        \"city\": \"Hyderabad\",\n        \"subscriber_id\": \"Paytm.com\"\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/vlookup",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"vlookup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "lookup",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"subscriber_id\": \"LIC.com\"\n}\n\n// {\n//     \"ukid\" : \"UK1093\"\n// }",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/lookup",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"lookup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "sign",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n        \"privateKey\": \"eahA58KmU/o5iPR2+kvah2xGfZgTj73mnvdaB0epW3qcMpJ4mnWKqnGJixQkzSIdn1NxQTq4cBzfEiRCeaw3vw==\",\n        \"digest\": \"Rfv1pdi+f9ZFwMJW4egU26kNX3WrdbsKZt8lAZCprKI=\"\n      }",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/sign",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"sign"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "search",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Signature keyId=\"UK1001\",algorithm=\"ed25519\",signature=\"QR3mInFDxRVaCPiWrKgkNBWuhATbOPn5blUsxmzQfdXRgy4N0fjWcp8PDGbg7QeDFMe+3ek0035T+R/CxnhBBQ==\""
+					},
+					{
+						"key": "Digest",
+						"value": "Rfv1pdi+f9ZFwMJW4egU26kNX3WrdbsKZt8lAZCprKI=",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"domain\": \"retail\",\n    \"city\": \"DEL\",\n    \"action\": \"search\",\n    \"core_version\": \"1.0.0\",\n    \"bap_id\": \"buyer-app.ondc.org\",\n    \"bap_uri\": \"https://buyer-app.ondc.org\",\n    \"transaction_id\": \"12345\",\n    \"message_id\": \"abc-123\",\n    \"timestamp\": \"2025-09-29T18:30:00Z\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"item\": {\n        \"descriptor\": {\n          \"name\": \"Laptop\"\n        }\n      }\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/search",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"search"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "signature",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"private_key\": \"eahA58KmU/o5iPR2+kvah2xGfZgTj73mnvdaB0epW3qcMpJ4mnWKqnGJixQkzSIdn1NxQTq4cBzfEiRCeaw3vw==\",\n    \"data\": \"IN|ONDC:ENT01|Seller|Hyderabad|Paytm.com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/signature",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"signature"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

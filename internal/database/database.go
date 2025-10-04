@@ -29,7 +29,7 @@ func ConnectDB() {
 		os.Getenv("DB_SCHEMA"),
 	)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{PrepareStmt: false})
 	if err != nil {
 		log.Fatal("failed to connect to database:", err)
 	}
